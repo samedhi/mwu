@@ -8,8 +8,8 @@ objects to weights.
 ```python
 from mwu import mwu
 
-# Define event and reward functions
+# Define outcome and reward functions
 ...
 weights = {"a": 1.0, "b": 1.0}
-weights = mwu(event, reward, weights)
+weights = mwu(outcome, reward, weights)
 ```
