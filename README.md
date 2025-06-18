@@ -2,12 +2,14 @@
 A pure Python implementation of the Multiplicative Weights Update Algorithm.
 
 The core implementation lives in `mwu.py` and exposes a single function
-`mwu` which runs the algorithm for a fixed number of rounds.
+`mwu` which performs one multiplicative weights update on a mapping of
+objects to weights.
 
 ```python
 from mwu import mwu
 
 # Define event and reward functions
 ...
-final_weights = mwu(objects, event, reward, rounds=100)
+weights = {"a": 1.0, "b": 1.0}
+weights = mwu(event, reward, weights)
 ```

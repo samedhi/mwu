@@ -1,21 +1,21 @@
 """Multiplicative Weights Update Algorithm implementation.
 
-This module implements a basic version of the MWU algorithm as
-outlined in article-summary.txt. The algorithm maintains weights for a
-collection of objects and repeatedly samples an object proportionally
-to its weight, observes an event, and updates the weight depending on
-the event outcome.
+This module implements a minimal version of the multiplicative weights
+update (MWU) algorithm.  The algorithm maintains weights for a
+collection of objects, randomly chooses one proportionally to its
+weight, observes an event, and then updates the chosen object's weight
+based on the outcome.
 
-The update rule here is multiplicative: the chosen object's weight is
-scaled by (1 + eta * reward), where ``reward`` may be positive or
-negative depending on whether the outcome is good or bad. The
-parameter ``eta`` should be small (e.g. < 1).
+Unlike a full MWU implementation, this module provides a single round
+update that can easily be called repeatedly by the user.  It takes a
+dictionary mapping objects to their current weights and returns a new
+dictionary with the updated weights.
 """
 
 from __future__ import annotations
 
 import random
-from typing import Callable, Iterable, List, Sequence, Tuple
+from typing import Callable, Dict, Mapping
 
 
 RewardFn = Callable[[object], float]
@@ -23,66 +23,47 @@ EventFn = Callable[[object], object]
 
 
 def mwu(
-    objects: Sequence[object],
     event: EventFn,
     reward: RewardFn,
-    rounds: int,
-    eta: float = 0.1,
-) -> List[float]:
-    """Run the multiplicative weights update algorithm.
+    objects: Mapping[object, float],
+) -> Dict[object, float]:
+    """Run a single round of the multiplicative weights update algorithm.
 
     Parameters
     ----------
-    objects:
-        A sequence of objects to choose from.
     event:
         Function taking an object and returning the outcome for that
         round. The outcome is fed to ``reward``.
     reward:
         Function taking the outcome of ``event`` and returning a reward
         value. Positive values increase the object's weight and negative
-        values decrease it.
-    rounds:
-        Number of iterations to run the algorithm for.
-    eta:
-        Learning rate controlling how aggressively weights are updated.
+        values decrease it.  The reward should be scaled as desired
+        since no learning rate parameter is used.
+    objects:
+        Mapping from objects to their current weights.
 
     Returns
     -------
-    List[float]
-        The final list of weights corresponding to ``objects``.
+    Dict[object, float]
+        A new mapping of objects to their updated weights after one
+        multiplicative update.
     """
 
-    if rounds <= 0:
-        return [1.0 for _ in objects]
+    if not objects:
+        return {}
 
-    weights = [1.0 for _ in objects]
+    total = sum(objects.values())
+    if total == 0:
+        return dict(objects)
 
-    for _ in range(rounds):
-        total = sum(weights)
-        if total == 0:
-            break
-        probabilities = [w / total for w in weights]
-        idx = random.choices(range(len(objects)), weights=probabilities, k=1)[0]
-        obj = objects[idx]
-        outcome = event(obj)
-        r = reward(outcome)
-        weights[idx] *= 1.0 + eta * r
+    choices, weights_list = zip(*objects.items())
+    chosen = random.choices(choices, weights=weights_list, k=1)[0]
+    outcome = event(chosen)
+    r = reward(outcome)
 
-    return weights
+    new_weights = dict(objects)
+    new_weights[chosen] *= 1.0 + r
+
+    return new_weights
 
 
-if __name__ == "__main__":
-    # Simple example demonstrating usage. We have three objects and an
-    # event that returns the object itself. The reward gives +1 if the
-    # chosen object is 0, otherwise -1.
-    objs = [0, 1, 2]
-
-    def event(x: int) -> int:
-        return x
-
-    def reward_fn(x: int) -> float:
-        return 1.0 if x == 0 else -1.0
-
-    final_weights = mwu(objs, event, reward_fn, rounds=10, eta=0.2)
-    print(final_weights)
